@@ -3,16 +3,15 @@
 defs.qc
 subs.qc
 math.qc
-utils.qc
 maps.qc
 gamemodes.qc
-rocketonly.qc
 fight.qc
 ai.qc
 combat.qc
 items.qc
 weapons.qc
 world.qc
+spectate.qc		// R00k: Modified from QuakeWorld GPL
 client.qc
 player.qc
 monsters.qc
@@ -38,3 +37,6 @@ fish.qc			// registered
 shalrath.qc		// registered
 enforcer.qc		// registered
 oldone.qc		// registered
+
+spawn.qc
+addon_mapcycler.qc

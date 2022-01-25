@@ -46,9 +46,9 @@ float		parm1, parm2, parm3, parm4, parm5, parm6, parm7, parm8, parm9, parm10, pa
 
 //
 // global variables set by built in functions
-//
+//	
 vector		v_forward, v_up, v_right;	// set by makevectors()
-
+	
 // set by traceline / tracebox
 float		trace_allsolid;
 float		trace_startsolid;
@@ -240,10 +240,6 @@ float	FL_ONGROUND				= 512;	// standing on something
 float	FL_PARTIALGROUND		= 1024;	// not all corners are valid
 float	FL_WATERJUMP			= 2048;	// player jumping out of water
 float	FL_JUMPRELEASED			= 4096;	// for jump debouncing
-float	FL_ISBOT				= 8192; // is the client a bot?
-float 	FL_NO_PLAYERS    		= 16384;
-float 	FL_NO_MONSTERS    		= 32768;
-float 	FL_NO_BOTS	    		= 65536;
 
 // edict.movetype values
 float	MOVETYPE_NONE			= 0;	// never moves
@@ -336,6 +332,13 @@ vector	VEC_HULL2_MIN = '-32 -32 -24';
 vector	VEC_HULL2_MAX = '32 32 64';
 
 // protocol bytes
+float	SVC_SETVIEWPORT		= 5; 
+float	SVC_STUFFCMD		= 9; 
+float	SVC_SETANGLES		= 10;
+float	SVC_UPDATENAME		= 13;
+float	SVC_UPDATEFRAGS		= 14;
+float	SVC_CLIENTDATA		= 15;
+float	SVC_UPDATECOLORS	= 17;
 float	SVC_TEMPENTITY		= 23;
 float	SVC_CENTERPRINT		= 26;
 float	SVC_KILLEDMONSTER	= 27;
@@ -423,8 +426,6 @@ float		skill;
 .string 	map;
 .float		worldtype;	// 0=medieval 1=metal 2=base
 
-.float      alpha;
-
 //================================================
 
 .string		killtarget;
@@ -444,7 +445,7 @@ float		skill;
 .void()		th_run;
 .void()		th_missile;
 .void()		th_melee;
-.void(optional entity attacker,optional float damage)		th_pain;
+.void(entity attacker, float damage)		th_pain;
 .void()		th_die;
 
 .entity		oldenemy;		// mad at this player before taking damage
@@ -523,12 +524,12 @@ float	AS_MISSILE		= 4;
 //
 .float		aflag;
 .float		dmg;			// damage done by door when hit
-
+	
 //
 // misc
 //
 .float		cnt; 			// misc flag
-
+	
 //
 // subs
 //
@@ -560,7 +561,7 @@ float	AS_MISSILE		= 4;
 
 
 //===========================================================================
-
+	
 
 //
 // builtin functions
@@ -587,7 +588,7 @@ void(entity e) remove				= #15;
 // An entity will also be ignored for testing if forent == test,
 // forent->owner == test, or test->owner == forent
 // a forent of world is ignored
-void(vector v1, vector v2, float nomonsters, entity forent) traceline = #16;
+void(vector v1, vector v2, float nomonsters, entity forent) traceline = #16;	
 
 entity() checkclient				= #17;	// returns a client to look for
 entity(entity start, .string fld, string match) find = #18;
@@ -606,7 +607,7 @@ void() traceoff						= #30;
 void(entity e) eprint				= #31;		// prints an entire edict
 float(float yaw, float dist) walkmove	= #32;	// returns TRUE or FALSE
 // #33 was removed
-float(optional float yaw, optional float dist) droptofloor= #34;	// TRUE if landed on floor
+float(float yaw, float dist) droptofloor= #34;	// TRUE if landed on floor
 void(float style, string value) lightstyle = #35;
 float(float v) rint					= #36;		// round to nearest int
 float(float v) floor				= #37;		// largest integer <= v
@@ -661,7 +662,7 @@ void(string s) changelevel = #70;
 
 void(string var, string val) cvar_set = #72;	// sets cvar.value
 
-void(entity client, string s, optional string s1, optional string s2, optional string s3, optional string s4, optional string s5, optional string s6, optional string s7) centerprint = #73;	// sprint, but in middle
+void(entity client, string s) centerprint = #73;	// sprint, but in middle
 
 void(vector pos, string samp, float vol, float atten) ambientsound = #74;
 
@@ -672,9 +673,9 @@ string(string s) precache_file2		= #77;		// registered version only
 void(entity e) setspawnparms		= #78;		// set parm1... to the
 												// values at level start
 												// for coop respawn
-
+												
 void(entity killer, entity killee) finaleFinished = #79;
-string(entity e, string key) localsound = #80;
+string(entity e, string key) localsound = #80; 
 void draw_point( vector point, float colormap, float lifetime, float depthtest ) = #81;
 void draw_line( vector start, vector end, float colormap, float lifetime, float depthtest ) = #82;
 void draw_arrow( vector start, vector end, float colormap, float size, float lifetime, float depthtest ) = #83;
@@ -685,11 +686,11 @@ void draw_worldtext( string s, vector origin, float size, float lifetime, float 
 void draw_sphere( vector origin, float radius, float colormap, float lifetime, float depthtest ) = #88;
 void draw_cylinder( vector origin, float halfHeight, float radius, float colormap, float lifetime, float depthtest ) = #89;
 
-void (entity client, string s, ...) centerprint2 = #90;
-void (string s,...) bprint2 = #91;
+void (entity client, string s, ...) centerprint2 = #90; 
+void (string s,...) bprint2 = #91; 
 void (entity client, string s, ...) sprint2 = #92;
 
-float(string extname) checkextension = #99;
+float(string extname) checkextension = #99; 
 
 //============================================================================
 
@@ -715,4 +716,34 @@ float (entity e, float healamount, float ignore) T_Heal; // health function
 
 float(entity targ, entity inflictor) CanDamage;
 
+//==========================================================================================
+//CLEANQC (GPL v2.0 Release) Updates 
+void() 	PutClientInServer;
+float	modelindex_eyes;
+float	modelindex_player;
+entity	poll_entity;
+.float	alpha;
+float	sys_ticrate;
+float	timelimitcheck;
+.float	spectator;
+float	SPEC_FREEMOVE 	= 2;
+float	SPEC_EYECAM	  	= 4;	
+.float	spec_thinktime;
+float 	intermission_running;
+float 	intermission_exittime;
+.float 	next_impulse;
+.float	qwclient;
+.float 	motd_delay;
+.float	show_motd;
+.float	player_flag;
+float	PF_NEWCLIENT = 2;
+.float	vote;
+.float	deferspawn;
+//define impulses with names; this way we can change the number later when we run into conflicts and it helps to read the code easier
+float IMPULSE_VOTE_YES		= 101;
+float IMPULSE_VOTE_NO		= 102;
+float IMPULSE_VOTE_TEST		= 110;
+float IMPULSE_SPECTATOREND 	= 200;
 
+.float spawn_deferred;
+.float fired_weapon;

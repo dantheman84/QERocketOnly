@@ -1,5 +1,5 @@
 #define ShowModName 1
-#define ModName "Rocket only"
+#define ModName "Rocket Only"
 
 
 #define FirstDefineMap(_bspname,_maptitle) if(mapname == ##_bspname && title == ##_maptitle) { return ##_maptitle" ("ModName")"; }
@@ -53,7 +53,31 @@ string(string title) GetMapName =
     DefineMap("e4m8","The Nameless City")
     DefineMap("end","Shub-Niggurath's Pit")
     DefineMap("start","Introduction")
-
+    //DOTM maps
+    DefineMap("hub","The Machine")
+    DefineMap("mge1m1","The Pain Drain")
+    DefineMap("mge1m2","The Wishing Well")
+    DefineMap("mge1m3","Sandy's Room")
+    DefineMap("mge2m1","Acid Sanctuary")
+    DefineMap("mge2m2","Fading Embers")
+    DefineMap("mge3m1","Down the Waste")
+    DefineMap("mge3m2","Hell or Dark Water")
+    DefineMap("mge4m1","Grave Machine")
+    DefineMap("mge4m2","A Grave Mistake")
+    DefineMap("mge5m1","Nazard Terminal")
+    DefineMap("mge5m2","Too Deep, Too Greedy")
+    DefineMap("mgend","Chthon's Vengeance")
+    DefineMap("start","Introduction")
+    DefineMap("horde1","Tower of the Apprentice")
+    DefineMap("horde2","Frozen Court")
+    DefineMap("horde3","Too Deep, Too Greedy")
+    DefineMap("horde4","The Hunt")
+    
+    
+    
+    
+    
+    
 	OverrideDefineMap("test/mals_combatbox","Mal's Combatbox")
 	OverrideDefineMap("test/test_shadow","Shadow's Arena")
 	OverrideDefineMap("test/test_aiming","Box Arena")

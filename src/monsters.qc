@@ -30,7 +30,7 @@ void() monster_use =
 		return;
 	if (activator.classname != "player")
 		return;
-
+	
 // delay reaction so if the monster is teleported, its sound is still
 // heard
 	self.enemy = activator;
@@ -48,6 +48,7 @@ enemy as activator.
 */
 void() monster_death_use =
 {
+	local entity 	ent, otemp, stemp;
 
 // fall to ground
 	if (self.flags & FL_FLY)
@@ -67,17 +68,19 @@ void() monster_death_use =
 
 void() walkmonster_start_go =
 {
+local string	stemp;
+local entity	etemp;
 
 	self.origin_z = self.origin_z + 1;	// raise off floor a bit
 	droptofloor();
-
+	
 	if (!walkmove(0,0))
 	{
 		dprint ("walkmonster in wall at: ");
 		dprint (vtos(self.origin));
 		dprint ("\n");
 	}
-
+	
 	self.takedamage = DAMAGE_AIM;
 
 	self.ideal_yaw = self.angles * '0 1 0';
@@ -85,9 +88,9 @@ void() walkmonster_start_go =
 		self.yaw_speed = 20;
 	self.view_ofs = '0 0 25';
 	self.use = monster_use;
-
+	
 	self.flags = self.flags | FL_MONSTER;
-
+	
 	if (self.target)
 	{
 		self.goalentity = self.movetarget = find(world, targetname, self.target);
@@ -195,7 +198,7 @@ void() swimmonster_start_go =
 		self.yaw_speed = 10;
 	self.view_ofs = '0 0 10';
 	self.use = monster_use;
-
+	
 	self.flags = self.flags | FL_SWIM;
 	self.flags = self.flags | FL_MONSTER;
 
