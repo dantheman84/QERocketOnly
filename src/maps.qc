@@ -72,6 +72,9 @@ string(string title) GetMapName =
     DefineMap("horde2","Frozen Court")
     DefineMap("horde3","Too Deep, Too Greedy")
     DefineMap("horde4","The Hunt")
+    DefineMap("horde5","Relic")
+    DefineMap("horde6","The Trial")
+    DefineMap("horde7","The Tech Spire")
     
     
     
