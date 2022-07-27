@@ -4,6 +4,7 @@ defs.qc
 subs.qc
 math.qc
 maps.qc
+antilag.qc  // QCAntilag
 gamemodes.qc
 fight.qc
 ai.qc
