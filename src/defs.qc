@@ -756,6 +756,13 @@ float IMPULSE_SPECTATOREND 	= 200;
 .float spawn_deferred;
 .float fired_weapon;
 
+#define ANTILAG_STATES				0x10
+
+enumflags {
+    ANTILAG_FL_SPAWNTEST,
+    ANTILAG_FL_RESPONSECHECK
+};
+
 // QCAntilag: entity properties
 .float 	antilag_flags;
 .vector	antilag_lastorigin[ANTILAG_STATES];

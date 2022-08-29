@@ -710,8 +710,8 @@ if (!(intermission_running))
 		if (self.antilag_flags & ANTILAG_FL_SPAWNTEST) // send the angles manually if we're using spawntest ping check
 		{
 			self.fixangle = FALSE;
-			self.spawn_angles = self.angles;
-			self.spawn_time = time;
+			self.antilag_spawn_angles = self.angles;
+			self.antilag_spawn_time = time;
 
 			msg_entity = self;
 

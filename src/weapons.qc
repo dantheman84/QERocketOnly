@@ -42,7 +42,7 @@ void() W_FireAxe =
 	makevectors (self.v_angle);
 	source = self.origin + '0 0 16';
 	// QCAntilag: Use the client's response time to temporarily move all other player entities back in time
-	antilag_rewind_players(self.responsetime, self);
+	antilag_rewind_players(self.antilag_responsetime, self);
 
 	traceline (source, source + v_forward*64, FALSE, self);
 	if (trace_fraction == 1.0)
@@ -412,23 +412,23 @@ void() W_FireRocket =
 	setorigin (missile, self.origin + v_forward*8 + '0 0 16');
 
 	// QCAntilag: Set up missile antilag properties
-	if (self.flags & FL_CLIENT)
+      if((self.flags & FL_CLIENT))
 	{
-		// use custom a movement .think
-		missile.movetype = MOVETYPE_NONE;
-		missile.think = ThinkMovetype_AntilagProjectile;
-		missile.nextthink = time + 0.01;
 
-		// set .responsetime to owner's so position can be compensated for antilag
-		missile.responsetime = self.responsetime;
+        // use custom a movement .think
+        missile.movetype = MOVETYPE_NONE;
+        missile.think = ThinkMovetype_AntilagProjectile;
+        missile.nextthink = time + 0.01;
 
-		// store the physics version of the missile's location
-		missile.hold_origin = missile.origin;
+        // set .antilag_responsetime to owner's so position can be compensated for antilag
+        missile.antilag_responsetime = self.antilag_responsetime;
 
-		// run extrapolation, so for QW clients we avoid visual strange-ness
-		Extrapolate_AntilagProjectile(missile);
+        // store the physics version of the missile's location
+        missile.antilag_hold_origin = missile.origin;
+
+        // run extrapolation, so for QW clients we avoid visual strange-ness
+        Extrapolate_AntilagProjectile(missile);
 	}
-
 };
 
 /*

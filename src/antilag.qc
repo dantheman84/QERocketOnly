@@ -91,15 +91,19 @@ void() CheckSpawnTest =
 // QCAntilag: Think function for client ping impulse
 void () client_ping_think =
 {
-	// If for some reason the flag was missed
-	if(client.antilag_flags & ANTILAG_FL_RESPONSECHECK)
-	client.antilag_flags -= ANTILAG_FL_RESPONSECHECK;
+
 
 	local entity client;
 
 	client = find(world, classname, "player");
 	while (client)
 	{
+
+
+	// If for some reason the flag was missed
+	if(client.antilag_flags & ANTILAG_FL_RESPONSECHECK)
+	client.antilag_flags -= ANTILAG_FL_RESPONSECHECK;
+
 		client.antilag_responsetime3 = client.antilag_responsetime2;
 		client.antilag_responsetime2 = client.antilag_responsetime1;
 
@@ -220,9 +224,9 @@ void () client_responsetime_show =
 		sprint(self, "last frame");
 		sprint(self, ftos(i));
 		sprint(self, ": ");
-		sprint(self, vtos(self.lastorigin[i]));
+		sprint(self, vtos(self.antilag_lastorigin[i]));
 		sprint(self, " ");
-		sprint(self, ftos(self.lastorigintime[i]));
+		sprint(self, ftos(self.antilag_lastorigintime[i]));
 		sprint(self, "\n");
 	}
 };
@@ -234,8 +238,8 @@ void () UpdateLastOrigin =
 	float i;
 	for(i = ANTILAG_STATES-1; i > 0; i--)
 	{
-		self.lastorigin[i] = self.antilag_lastorigin[i-1];
-		self.lastorigintime[i] = self.antilag_lastorigintime[i-1];
+		self.antilag_lastorigin[i] = self.antilag_lastorigin[i-1];
+		self.antilag_lastorigintime[i] = self.antilag_lastorigintime[i-1];
 	}
 
 	self.antilag_lastorigin[0] = self.origin;
