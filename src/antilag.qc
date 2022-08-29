@@ -5,18 +5,18 @@
 #define ANTILAG_FL_SPAWNTEST		0x01
 
 // QCAntilag: entity properties
-.float 	antilag_flags;
-.vector	lastorigin[ANTILAG_STATES];
-.float 	lastorigintime[ANTILAG_STATES];
-.float 	antilag_updatetime;
-.vector hold_origin;
-.vector	spawn_angles;
-.float 	spawn_time;
-.float 	responsetime;
-.float 	responsetime1;
-.float 	responsetime2;
-.float 	responsetime3;
-.float 	spamtime;
+//.float 	antilag_flags;
+//.vector	lastorigin[ANTILAG_STATES];
+//.float 	lastorigintime[ANTILAG_STATES];
+//.float 	antilag_updatetime;
+//.vector hold_origin;
+//.vector	spawn_angles;
+//.float 	spawn_time;
+//.float 	responsetime;
+//.float 	responsetime1;
+//.float 	responsetime2;
+//.float 	responsetime3;
+//.float 	spamtime;
 
 // QCAntilag: PlayerEXFlags for FTE
 .float	playerexflags;
@@ -51,8 +51,8 @@ void () ClearLastOrigin =
 	float i;
 	for(i = 0; i < ANTILAG_STATES; i++)
 	{
-		self.lastorigin[i] = 0;
-		self.lastorigintime[i] = 0;
+		self.antilag_lastorigin[i] = 0;
+		self.antilag_lastorigintime[i] = 0;
 	}
 };
 
@@ -74,16 +74,16 @@ float(vector ang1, vector ang2) CompareNetAngles =
 // QCAntilag: check angles for spawn
 void() CheckSpawnTest =
 {
-	if (self.antilag_flags & ANTILAG_FL_SPAWNTEST && self.spawn_time)
+	if (self.antilag_flags & ANTILAG_FL_SPAWNTEST && self.antilag_spawn_time)
 	{
-		if (CompareNetAngles(self.v_angle, self.spawn_angles))
+		if (CompareNetAngles(self.v_angle, self.antilag_spawn_angles))
 		{
-			self.responsetime1 = (time - self.spawn_time) * 1000;
-			self.spawn_time = 0;
+			self.antilag_responsetime1 = (time - self.antilag_spawn_time) * 1000;
+			self.antilag_spawn_time = 0;
 		}
-		else if (time - self.spawn_time > 0.5) // timeout, something went wrong. not exactly unexpected with this hack
+		else if (time - self.antilag_spawn_time > 0.5) // timeout, something went wrong. not exactly unexpected with this hack
 		{
-			self.spawn_time = 0;
+			self.antilag_spawn_time = 0;
 		}
 	}
 }
@@ -91,48 +91,52 @@ void() CheckSpawnTest =
 // QCAntilag: Think function for client ping impulse
 void () client_ping_think =
 {
+	// If for some reason the flag was missed
+	if(client.antilag_flags & ANTILAG_FL_RESPONSECHECK)
+	client.antilag_flags -= ANTILAG_FL_RESPONSECHECK;
+
 	local entity client;
 
 	client = find(world, classname, "player");
 	while (client)
 	{
-		client.responsetime3 = client.responsetime2;
-		client.responsetime2 = client.responsetime1;
+		client.antilag_responsetime3 = client.antilag_responsetime2;
+		client.antilag_responsetime2 = client.antilag_responsetime1;
 
 		if (client.finaldest_y > self.finaldest_x) // if we got a packet back
 		{
 			self.antilag_flags &= ~ANTILAG_FL_SPAWNTEST;
-			client.responsetime1 = (floor(client.finaldest_y - self.finaldest_x) - 16);
+			client.antilag_responsetime1 = (floor(client.finaldest_y - self.finaldest_x) - 16);
 
 			// cap to acceptable values
-			client.responsetime1 = client.responsetime1 < 0 ? 0 : client.responsetime1;
-			client.responsetime1 = client.responsetime1 > ANTILAG_MAX_RESPONSETIME ? ANTILAG_MAX_RESPONSETIME : client.responsetime1;
+			client.antilag_responsetime1 = client.antilag_responsetime1 < 0 ? 0 : client.antilag_responsetime1;
+			client.antilag_responsetime1 = client.antilag_responsetime1 > ANTILAG_MAX_RESPONSETIME ? ANTILAG_MAX_RESPONSETIME : client.antilag_responsetime1;
 		}
 		else // packet dropped, lets make something up
 		{
 			if (self.finaldest_z > client.finaldest_y) // client hasn't responded in a long time, probably cl_filterstuffcmd 1
 			{
 				client.antilag_flags |= ANTILAG_FL_SPAWNTEST;
-				client.responsetime1 = client.responsetime;
+				client.antilag_responsetime1 = client.antilag_responsetime;
 			}
 			else
-				client.responsetime1 = client.responsetime;
+				client.antilag_responsetime1 = client.antilag_responsetime;
 		}
 
-		if (client.responsetime2 > 0)
+		if (client.antilag_responsetime2 > 0)
 		{
-			if (client.responsetime3 > 0)
+			if (client.antilag_responsetime3 > 0)
 			{
-				client.responsetime = ((client.responsetime1 + client.responsetime2 + client.responsetime3) / 3);
+				client.antilag_responsetime = ((client.antilag_responsetime1 + client.antilag_responsetime2 + client.antilag_responsetime3) / 3);
 			}
 			else
 			{
-				client.responsetime = ((client.responsetime1 + client.responsetime2) / 2);
+				client.antilag_responsetime = ((client.antilag_responsetime1 + client.antilag_responsetime2) / 2);
 			}
 		}
 		else
 		{
-			client.responsetime = client.responsetime1;
+			client.antilag_responsetime = client.antilag_responsetime1;
 		}
         client = find(client, classname, "player");
     }
@@ -147,11 +151,11 @@ void () client_responsetime_get_all =
 	{
 		for(entity pl = find(world, classname, "player"); pl; pl = find(pl, classname, "player"))
 		{
-			pl.responsetime = infokeyf(pl, "ping") - 8; // account for QW input frame timey-ness
+			pl.antilag_responsetime = infokeyf(pl, "ping") - 8; // account for QW input frame timey-ness
 
 			// cap to acceptable values
-			pl.responsetime = pl.responsetime < 0 ? 0 : pl.responsetime;
-			pl.responsetime = pl.responsetime > ANTILAG_MAX_RESPONSETIME ? ANTILAG_MAX_RESPONSETIME : pl.responsetime;
+			pl.antilag_responsetime = pl.antilag_responsetime < 0 ? 0 : pl.antilag_responsetime;
+			pl.antilag_responsetime = pl.antilag_responsetime > ANTILAG_MAX_RESPONSETIME ? ANTILAG_MAX_RESPONSETIME : pl.antilag_responsetime;
 		}
 
 		responsetimecheck = (time + 3); // we're using engine stuff, so we can speed this polling up a bit
@@ -159,9 +163,14 @@ void () client_responsetime_get_all =
 	}
 
 	local entity ping;
-
-	WriteByte(MSG_BROADCAST, SVC_STUFFCMD); // Changed from SVC_STUFFTEXT for QCAntilag
-	WriteString(MSG_BROADCAST, "impulse 38\n");
+	//kill impulse changed to account for console users and their allowed impulses.
+	for(entity pl = find(world,::classname,"player");pl; pl = find(pl,::classname,"player"))
+        {
+            if(pl.deadflag == DEAD_NO) {
+                pl.antilag_flags |= ANTILAG_FL_RESPONSECHECK;
+                stuffcmd(pl,"kill\n");
+            }
+        }
 
 	ping = spawn();
 	ping.classname = "client_ping";
@@ -184,22 +193,22 @@ void () client_responsetime_set =
 void () client_responsetime_show =
 {
 	//don't let players spam this
-	if (time < self.spamtime)
+	if (time < self.antilag_spamtime)
 		return;
 
-	self.spamtime = (time + 5);
+	self.antilag_spamtime = (time + 5);
 
 	sprint(self, "response time3: ");
-	sprint(self, ftos(self.responsetime3));
+	sprint(self, ftos(self.antilag_responsetime3));
 	sprint(self, "\n");
 	sprint(self, "response time2: ");
-	sprint(self, ftos(self.responsetime2));
+	sprint(self, ftos(self.antilag_responsetime2));
 	sprint(self, "\n");
 	sprint(self, "response time1: ");
-	sprint(self, ftos(self.responsetime1));
+	sprint(self, ftos(self.antilag_responsetime1));
 	sprint(self, "\n");
 	sprint(self, "response time:  ");
-	sprint(self, ftos(self.responsetime));
+	sprint(self, ftos(self.antilag_responsetime));
 	sprint(self, "\n");
 	sprint(self, "current origin: ");
 	sprint(self, vtos(self.origin));
@@ -225,12 +234,12 @@ void () UpdateLastOrigin =
 	float i;
 	for(i = ANTILAG_STATES-1; i > 0; i--)
 	{
-		self.lastorigin[i] = self.lastorigin[i-1];
-		self.lastorigintime[i] = self.lastorigintime[i-1];
+		self.lastorigin[i] = self.antilag_lastorigin[i-1];
+		self.lastorigintime[i] = self.antilag_lastorigintime[i-1];
 	}
 
-	self.lastorigin[0] = self.origin;
-	self.lastorigintime[0] = (time * 1000);
+	self.antilag_lastorigin[0] = self.origin;
+	self.antilag_lastorigintime[0] = (time * 1000);
 };
 
 // QCAntilag: Rewind an entity "e" to "rewindtime" to check for lag-compensated hits
@@ -242,7 +251,7 @@ void (entity e, float rewindtime) antilag_rewind =
 	for(i = 0; i < ANTILAG_STATES; i++)
 	{
 		// if we encounter a cleared value
-		if (lastorigintime[i] == 0)
+		if (antilag_lastorigintime[i] == 0)
 		{
 			// if this is the first array entry, the entire thing is cleared
 			if (i == 0) {
@@ -251,14 +260,14 @@ void (entity e, float rewindtime) antilag_rewind =
 			}
 			// use the previous one
 			else if (i > 0) {
-				rewindorigin = e.lastorigin[i - 1];
+				rewindorigin = e.antilag_lastorigin[i - 1];
 				break;
 			}
 		}
 		// if we've gone over our target rewind time, use this origin
-		else if (rewindtime > e.lastorigintime[i])
+		else if (rewindtime > e.antilag_lastorigintime[i])
 		{
-			rewindorigin = e.lastorigin[i];
+			rewindorigin = e.antilag_lastorigin[i];
 			break;
 		}
 	}
@@ -280,7 +289,7 @@ void (float pingtime, entity ignore) antilag_rewind_players =
 		if (player.deadflag == DEAD_NO)
 		{
 			// Store the player's .origin off to a temporary .hold_origin
-			player.hold_origin = player.origin;
+			player.antilag_hold_origin = player.origin;
 			// Don't rewind self
 			if (player != ignore)
 			{
@@ -304,7 +313,7 @@ void () antilag_restore_players =
 		if (player.deadflag == DEAD_NO)
 		{
 			// Put everybody back where the server thinks they belong
-			setorigin(player, player.hold_origin);
+			setorigin(player, player.antilag_hold_origin);
 		}
 		player = find(player, classname, "player");
 	}
@@ -316,7 +325,7 @@ void Extrapolate_AntilagProjectile(entity missile)
 	// Original physics position should have been stored in missile.hold_origin already
 
 	// Make sure to multiply by 0.001 to convert into seconds for desired velocity
-	traceline(missile.origin, missile.origin + (missile.velocity * missile.responsetime * 0.001), FALSE, missile);
+	traceline(missile.origin, missile.origin + (missile.velocity * missile.antilag_responsetime * 0.001), FALSE, missile);
 	// Move to the extrapolated position for good visuals
 	setorigin(missile, trace_endpos);
 }
@@ -327,7 +336,7 @@ void ThinkMovetype_AntilagProjectile()
 	self.think = ThinkMovetype_AntilagProjectile;
 	self.nextthink = time + 0.01;
 
-	setorigin(self, self.hold_origin);
+	setorigin(self, self.antilag_hold_origin);
 
 	// If our SSQC is running at hyper fast framerate for some reason (FTE)
 	local float delta = frametime;
@@ -338,7 +347,7 @@ void ThinkMovetype_AntilagProjectile()
 	}
 
 	// Use the client's response time to temporarily move all other player entities back in time
-	antilag_rewind_players(self.responsetime, self.owner);
+	antilag_rewind_players(self.antilag_responsetime, self.owner);
 
 	// Trace a line from current position to the place where we'll be after the next frame
 	traceline(self.origin, self.origin + (self.velocity * delta), FALSE, self);
@@ -371,7 +380,7 @@ void ThinkMovetype_AntilagProjectile()
 	antilag_restore_players();
 
 	// Track our true position
-	self.hold_origin = self.origin;
+	self.antilag_hold_origin = self.origin;
 
 	// Run extrapolation
 	Extrapolate_AntilagProjectile(self);

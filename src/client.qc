@@ -517,6 +517,15 @@ Player entered the suicide command
 */
 void() ClientKill =
 {
+	if(self.antilag_flags & ANTILAG_FL_RESPONSECHECK)
+	{
+		self.antilag_flags -= ANTILAG_FL_RESPONSECHECK;
+		client_responsetime_set();
+		return TRUE;
+	}
+
+	return FALSE;
+
 	bprint (self.netname);
 	bprint (" suicides\n");
 	set_suicide_frame ();
@@ -1367,11 +1376,6 @@ void() PlayerPostThink =
 	{
 		client_responsetime_show();
 		self.impulse = 0;
-	}
-	else if (self.impulse == 38)
-	{
-		client_responsetime_set();
-		self.impulse = 0; // make sure we clear impulse, because it won't happen if we're reloading. Silly id1 code.
 	}
 	
 	if (self.impulse)
