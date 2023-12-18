@@ -60,7 +60,7 @@ void() SpectatorEnd =
 	self.flags = (self.flags - (self.flags & FL_NOTARGET));//coop
 	//reset the viewport
 	msg_entity = self;
-	WriteByte(MSG_ONE, SVC_SETVIEWPORT);
+	WriteByte(MSG_ONE, SVC_SETVIEW);
 	WriteEntity(MSG_ONE, self);
 	PutClientInServer ();
 };
@@ -80,7 +80,7 @@ void() SpectatorFreeMoveSetup =
 {
 	//reset the viewport
 	msg_entity = self;
-	WriteByte(MSG_ONE, SVC_SETVIEWPORT);
+	WriteByte(MSG_ONE, SVC_SETVIEW);
 	WriteEntity(MSG_ONE, self);
 	
 	//reset the hud
@@ -121,7 +121,7 @@ entity(entity p) SpectatorFindPlayer =
 void() SpectatorUpdateEyeCam =
 {
 	msg_entity = self;
-	WriteByte(MSG_ONE, SVC_SETVIEWPORT);
+	WriteByte(MSG_ONE, SVC_SETVIEW);
 	WriteEntity(MSG_ONE, self.goalentity);
 
 	self.weaponmodel	= self.goalentity.weaponmodel;
@@ -207,7 +207,9 @@ void() SpectatorThink =
 
 		if (self.goalentity != world)
 		{
+       		 centerprint(self, self.goalentity.netname);
 			SpectatorUpdateEyeCam();
+			
 		}
 	}
 

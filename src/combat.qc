@@ -1,3 +1,21 @@
+/*  Copyright (C) 1996-2022 id Software LLC
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+    See file, 'COPYING', for details.
+*/
 
 void() T_MissileTouch;
 void() info_player_start;
@@ -17,30 +35,41 @@ explosions and melee attacks.
 */
 float(entity targ, entity inflictor) CanDamage =
 {
-// bmodels need special checking because their origin is 0,0,0
+	// bmodels need special checking because their origin is 0,0,0
 	if (targ.movetype == MOVETYPE_PUSH)
 	{
 		traceline(inflictor.origin, 0.5 * (targ.absmin + targ.absmax), TRUE, self);
 		if (trace_fraction == 1)
 			return TRUE;
+
 		if (trace_ent == targ)
 			return TRUE;
+
 		return FALSE;
 	}
 	
 	traceline(inflictor.origin, targ.origin, TRUE, self);
+
 	if (trace_fraction == 1)
 		return TRUE;
+
 	traceline(inflictor.origin, targ.origin + '15 15 0', TRUE, self);
+
 	if (trace_fraction == 1)
 		return TRUE;
+
 	traceline(inflictor.origin, targ.origin + '-15 -15 0', TRUE, self);
+
 	if (trace_fraction == 1)
 		return TRUE;
+
 	traceline(inflictor.origin, targ.origin + '-15 15 0', TRUE, self);
+
 	if (trace_fraction == 1)
 		return TRUE;
+
 	traceline(inflictor.origin, targ.origin + '15 -15 0', TRUE, self);
+
 	if (trace_fraction == 1)
 		return TRUE;
 
@@ -72,11 +101,21 @@ void(entity targ, entity attacker) Killed =
 
 	self.enemy = attacker;
 
-// bump the monster counter
+	// bump the monster counter
 	if (self.flags & FL_MONSTER)
 	{
 		killed_monsters = killed_monsters + 1;
 		WriteByte (MSG_ALL, SVC_KILLEDMONSTER);
+		if (attacker.classname == "player")
+		{
+			attacker.frags = attacker.frags + 1;
+		}
+		
+		if (attacker != self && attacker.flags & FL_MONSTER)
+		{
+			WriteByte (MSG_ALL, SVC_ACHIEVEMENT);
+			WriteString(MSG_ALL, "ACH_FRIENDLY_FIRE");
+		}
 	}
 
 	ClientObituary(self, attacker);
@@ -86,10 +125,10 @@ void(entity targ, entity attacker) Killed =
 
 	monster_death_use();
 	self.th_die ();
-	
+
 	// Handle health by killing
 	if(self != attacker 					// Ignore self kills
-	&& gamemode & GM_HEALTH_BY_KILLING 
+	&& gamemode & GM_HEALTH_BY_KILLING
 	&& attacker.health > 0					   // Ignore if the attacker is dead
 	&& attacker.health < attacker.max_health) // Only if the attacker has missing health
 	{
@@ -119,29 +158,66 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
 	if (!targ.takedamage)
 		return;
 
-// used by buttons and triggers to set activator for target firing
+
+	// mal: in Coop, don't let bots hurt human teammates - that would be REALLY annoying...
+	if ( coop && targ != attacker && targ.classname == "player" && attacker.classname == "player" ) {
+		if ( attacker.flags & FL_ISBOT && !( targ.flags & FL_ISBOT ) ) {
+			return;
+		}
+	}	
+
+	// shub kill crash fix.
+	if (targ.classname == "monster_oldone" && damage < 9999)
+		return;
+
+	// used by buttons and triggers to set activator for target firing
 	damage_attacker = attacker;
 
-// check for quad damage powerup on the attacker
-	if (attacker.super_damage_finished > time)
+	float hasQuad = FALSE;
+
+	// check for quad damage powerup on the attacker
+	if (attacker.super_damage_finished > time) {
 		damage = damage * 4;
-
-// save damage based on the target's armor level
-
-	save = ceil(targ.armortype*damage);
-	if (save >= targ.armorvalue)
-	{
-		save = targ.armorvalue;
-		targ.armortype = 0;	// lost all armor
-		targ.items = targ.items - (targ.items & (IT_ARMOR1 | IT_ARMOR2 | IT_ARMOR3));
+		hasQuad = TRUE;
 	}
-	
-	targ.armorvalue = targ.armorvalue - save;
-	take = ceil(damage-save);
 
-// add to the damage total for clients, which will be sent as a single
-// message at the end of the frame
-// FIXME: remove after combining shotgun blasts?
+	float suddenDeathSaved = FALSE;
+	if(gamemode & GM_SUDDEN_DEATH) {
+		take = damage;
+
+		if((!(gamemode & GM_NO_SELF_DAMAGE) || targ != attacker) && targ.health == 1 && targ.armorvalue >= 100) {
+			targ.armorvalue -= 50;
+		
+			if(targ.armorvalue < 100)
+			{
+				targ.armortype = 0;	// lost all armor
+				targ.items = targ.items - (targ.items & (IT_ARMOR1 | IT_ARMOR2 | IT_ARMOR3));
+			}
+			
+			if(!hasQuad) {
+				suddenDeathSaved = TRUE;
+			}
+		}
+	}
+	else {
+		// save damage based on the target's armor level
+		save = ceil(targ.armortype*damage);
+
+		if (save >= targ.armorvalue)
+		{
+			save = targ.armorvalue;
+			targ.armortype = 0;	// lost all armor
+			targ.items = targ.items - (targ.items & (IT_ARMOR1 | IT_ARMOR2 | IT_ARMOR3));
+		}
+		
+		targ.armorvalue = targ.armorvalue - save;
+		take = ceil(damage-save);
+
+	}
+
+	// add to the damage total for clients, which will be sent as a single
+	// message at the end of the frame
+	// FIXME: remove after combining shotgun blasts?
 	if (targ.flags & FL_CLIENT)
 	{
 		targ.dmg_take = targ.dmg_take + take;
@@ -149,7 +225,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
 		targ.dmg_inflictor = inflictor;
 	}
 
-// figure momentum add
+	// figure momentum add
 	if ( (inflictor != world) && (targ.movetype == MOVETYPE_WALK) )
 	{
 		dir = targ.origin - (inflictor.absmin + inflictor.absmax) * 0.5;
@@ -157,9 +233,13 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
 		targ.velocity = targ.velocity + dir*damage*8;
 	}
 
-// check for godmode or invincibility
+	if(suddenDeathSaved)
+		return;
+
+	// check for godmode or invincibility
 	if (targ.flags & FL_GODMODE)
 		return;
+	
 	if (targ.invincible_finished >= time)
 	{
 		if (self.invincible_sound < time)
@@ -167,40 +247,58 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
 			sound (targ, CHAN_ITEM, "items/protect3.wav", 1, ATTN_NORM);
 			self.invincible_sound = time + 2;
 		}
+	
 		return;
 	}
 
-// team play damage avoidance
-	if ( (teamplay == 1) && (targ.team > 0)&&(targ.team == attacker.team) )
+	// team play damage avoidance
+	if ( (teamplay == 1 && targ != attacker) && (targ.team > 0)&&(targ.team == attacker.team) )
 		return;
+		
+	// [NDS] haleyjd: if player and actual health damage is inflicted, flag it here
+	if (targ.classname == "player" && take != 0)
+	{
+		targ.took_damage = 1;
+	}
 
 	// No self damage gamemode
 	if(gamemode & GM_NO_SELF_DAMAGE && targ == attacker)
 		return;
-		
-// do the damage
+
+	if (targ != attacker && attacker.classname == "player")
+    	{
+        local float overkill;
+        if (take > targ.health)
+            overkill = targ.health + save;
+        else
+            overkill = take + save;
+
+        attacker.dmg_given = attacker.dmg_given + overkill;
+        }
+
+	// do the damage
 	targ.health = targ.health - take;
-			
+
 	if (targ.health <= 0)
 	{
 		Killed (targ, attacker);
 		return;
 	}
 
-// react to the damage
+	//react to the damage
 	oldself = self;
 	self = targ;
 
 	if ( (self.flags & FL_MONSTER) && attacker != world)
 	{
-	// get mad unless of the same class (except for soldiers)
+		// get mad unless of the same class (except for soldiers)
 		if (self != attacker && attacker != self.enemy)
 		{
-			if ( (self.classname != attacker.classname) 
-			|| (self.classname == "monster_army" ) )
+			if ( (self.classname != attacker.classname) || (self.classname == "monster_army" ) )
 			{
 				if (self.enemy.classname == "player")
 					self.oldenemy = self.enemy;
+
 				self.enemy = attacker;
 				FoundTarget ();
 			}
@@ -210,7 +308,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
 	if (self.th_pain)
 	{
 		self.th_pain (attacker, take);
-	// nightmare mode monsters don't go into pain frames often
+		// nightmare mode monsters don't go into pain frames often
 		if (skill == 3)
 			self.pain_finished = time + 5;		
 	}
@@ -239,15 +337,20 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 			{
 				org = head.origin + (head.mins + head.maxs)*0.5;
 				points = 0.5*vlen (inflictor.origin - org);
+
 				if (points < 0)
 					points = 0;
+
 				points = damage - points;
+
 				if (head == attacker)
 					points = points * 0.5;
+
 				if (points > 0)
 				{
 					if (CanDamage (head, inflictor))
 					{	// shambler takes half damage from all explosions
+
 						if (head.classname == "monster_shambler")						
 							T_Damage (head, inflictor, attacker, points*0.5);
 						else
@@ -279,9 +382,12 @@ void(entity attacker, float damage) T_BeamDamage =
 			points = 0.5*vlen (attacker.origin - head.origin);
 			if (points < 0)
 				points = 0;
+
 			points = damage - points;
+
 			if (head == attacker)
 				points = points * 0.5;
+
 			if (points > 0)
 			{
 				if (CanDamage (head, attacker))
@@ -296,4 +402,3 @@ void(entity attacker, float damage) T_BeamDamage =
 		head = head.chain;
 	}
 };
-

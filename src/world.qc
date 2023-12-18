@@ -1,7 +1,24 @@
+/*  Copyright (C) 1996-2022 id Software LLC
 
-void() InitBodyQue;
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+    See file, 'COPYING', for details.
+*/
+
+void() InitBodyQueue;
 void() place_my_items;
-
 
 void() main =
 {
@@ -170,41 +187,38 @@ World Types:
 2: base
 */
 //=======================
+float startingserverflags;
+ 
 void() worldspawn =
 {
+	startingserverflags = serverflags;
 	lastspawn = world;
-	InitBodyQue ();
+	InitBodyQueue ();
 
 	precache_sound ("items/protect.wav");
 	precache_sound ("items/protect2.wav");
 	precache_sound ("items/protect3.wav");
 	precache_sound("items/health1.wav");
 
-// custom map attributes
+	// custom map attributes
 	if (self.model == "maps/e1m8.bsp")
 		cvar_set ("sv_gravity", "100");
 	else
 		cvar_set ("sv_gravity", "800");
 
-	// QCAntilag: Check for FTE server properties
-	if (cvar("pr_checkextension"))
-		is_running_fte = checkextension("FTE_MULTIPROGS");
-	if (is_running_fte)
-		cvar_set ("sv_gameplayfix_multiplethinks", "0");
+	// the area based ambient sounds MUST be the first precache_sounds
 
-// custom map title
+	// custom map title
 	self.message = GetMapName(self.message);
 
-// the area based ambient sounds MUST be the first precache_sounds
-
-// player precaches	
+	// player precaches	
 	W_Precache ();			// get weapon precaches
 
-// sounds used from C physics code
+	// sounds used from C physics code
 	precache_sound ("demon/dland2.wav");		// landing thud
 	precache_sound ("misc/h2ohit1.wav");		// landing splash
 
-// setup precaches allways needed
+	// setup precaches allways needed
 	precache_sound ("items/itembk2.wav");		// item respawn sound
 	precache_sound ("player/plyrjmp8.wav");		// player jump
 	precache_sound ("player/land.wav");			// player landing
@@ -291,7 +305,8 @@ void() worldspawn =
 	precache_model ("progs/bolt2.mdl");		// for lightning gun
 	precache_model ("progs/bolt3.mdl");		// for boss shock
 	precache_model ("progs/lavaball.mdl");	// for testing
-	
+	precache_model ("progs/quaddama.mdl");	// for testing		
+
 	precache_model ("progs/missile.mdl");
 	precache_model ("progs/grenade.mdl");
 	precache_model ("progs/spike.mdl");
@@ -348,29 +363,28 @@ void() worldspawn =
 
 	// 63 testing
 	lightstyle(63, "a");
-	
-	
-	
+
 	place_my_items();
-
-
 
 	gamemode = cvar("saved1");
 };
 
-void() StartFrame =
-{
+void StartFrame() {
 	teamplay = cvar("teamplay");
 	skill = cvar("skill");
+	cheats_allowed = cvar("sv_cheats");
+
+    // save off a global here so it gets included in savegames
+    if (!campaign_valid) {
+        campaign_valid = TRUE;
+        campaign = cvar("campaign");
+    } else {
+        cvar_set("campaign", ftos(campaign));
+    }
+
 	framecount = framecount + 1;
-	sys_ticrate 	= cvar("sys_ticrate");//R00k
 
-	// QCAntilag: Periodically get clients' ping (response) times
-	if (time > responsetimecheck)
-	{
-		client_responsetime_get_all();
-	}
-
+	Antilag::StartFrame();
 };
 
 /*
@@ -381,44 +395,42 @@ BODY QUE
 ==============================================================================
 */
 
-entity	bodyque_head;
+entity	bodyqueue_head;
 
-void() bodyque =
+void() bodyqueue =
 {	// just here so spawn functions don't complain after the world
-	// creates bodyques
+	// creates bodyqueues
 };
 
-void() InitBodyQue =
-{
-	local entity	e;
-	
-	bodyque_head = spawn();
-	bodyque_head.classname = "bodyque";
-	bodyque_head.owner = spawn();
-	bodyque_head.owner.classname = "bodyque";
-	bodyque_head.owner.owner = spawn();
-	bodyque_head.owner.owner.classname = "bodyque";
-	bodyque_head.owner.owner.owner = spawn();
-	bodyque_head.owner.owner.owner.classname = "bodyque";
-	bodyque_head.owner.owner.owner.owner = bodyque_head;
+void() InitBodyQueue =
+{	
+	bodyqueue_head = spawn();
+	bodyqueue_head.classname = "bodyqueue";
+	bodyqueue_head.owner = spawn();
+	bodyqueue_head.owner.classname = "bodyqueue";
+	bodyqueue_head.owner.owner = spawn();
+	bodyqueue_head.owner.owner.classname = "bodyqueue";
+	bodyqueue_head.owner.owner.owner = spawn();
+	bodyqueue_head.owner.owner.owner.classname = "bodyqueue";
+	bodyqueue_head.owner.owner.owner.owner = bodyqueue_head;
 };
 
 
 // make a body que entry for the given ent so the ent can be
 // respawned elsewhere
-void(entity ent) CopyToBodyQue =
+void(entity ent) CopyToBodyQueue =
 {
-	bodyque_head.angles = ent.angles;
-	bodyque_head.model = ent.model;
-	bodyque_head.modelindex = ent.modelindex;
-	bodyque_head.frame = ent.frame;
-	bodyque_head.colormap = ent.colormap;
-	bodyque_head.movetype = ent.movetype;
-	bodyque_head.velocity = ent.velocity;
-	bodyque_head.flags = 0;
-	setorigin (bodyque_head, ent.origin);
-	setsize (bodyque_head, ent.mins, ent.maxs);
-	bodyque_head = bodyque_head.owner;
+	bodyqueue_head.angles = ent.angles;
+	bodyqueue_head.model = ent.model;
+	bodyqueue_head.modelindex = ent.modelindex;
+	bodyqueue_head.frame = ent.frame;
+	bodyqueue_head.colormap = ent.colormap;
+	bodyqueue_head.movetype = ent.movetype;
+	bodyqueue_head.velocity = ent.velocity;
+	bodyqueue_head.flags = 0;
+	setorigin (bodyqueue_head, ent.origin);
+	setsize (bodyqueue_head, ent.mins, ent.maxs);
+	bodyqueue_head = bodyqueue_head.owner;
 };
 
 
